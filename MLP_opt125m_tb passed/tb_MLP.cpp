@@ -29,6 +29,10 @@ int main() {
     input_t in[768];
     result_t out[768];
 
+    // Global stats over all tokens & hidden units
+    double sum_abs_err = 0.0;
+    int    total_elems = 0;
+
     // Loop over tokens (SEQ_LEN)
     for (int t = 0; t < SEQ_LEN; t++) {
         // Load one token (768 features) into the parallel input vector
@@ -41,23 +45,32 @@ int main() {
 
         // Compare result with golden
         for (int h = 0; h < HIDDEN_SIZE; h++) {
-            float hw = (float) out[h];                 // convert from ap_fixed
+            float hw = (float) out[h]; // convert from ap_fixed
             float ref = y_out_golden[t][h];
 
-            float diff = hw - ref;
-            if (diff > 1e-2 || diff < -1e-2) {
-                // print or assert; adjust tolerance depending on quantization
-            }
+            float diff = std::fabs (hw - ref);
+
+            sum_abs_err += diff;
+            ++total_elems;
         }
+
     }
 
-    return 0;
+    double mae  = sum_abs_err / total_elems;   // Mean Absolute Error
 
-    // // 4) Read out all results (io_stream) and compare to golden
-    // unsigned out_count = 0;
-    // float max_abs_err = 0.0f;
-    // int   error_count = 0;
+    std::cout << "Total elements  = " << total_elems << "\n";
+    std::cout << "MAE             = " << mae          << "\n";
 
+    // common MAE vs float model in precision ap_fixed<16,6>: 0.001 – 0.03
+    if (mae > 0.03) {
+        std::cout << "TEST FAILED\n";
+        return 1;
+    } else {
+        std::cout << "TEST PASSED\n";
+        return 0;
+    }
+
+    // // if using stream 
     // while (!y_stream.empty()) {
     //     result_t y_word = y_stream.read();
 
@@ -66,25 +79,12 @@ int main() {
     //         for (int h = 0; h < HIDDEN_SIZE; ++h) {
     //             float y_hw  = (float)y_word[h];            // first 768 features
     //             float y_ref = (float)y_out_golden[t][h];   // golden
+    
+    //         // .. diff declaration
 
-    //             float err = std::fabs(y_hw - y_ref);
-    //             if (err > max_abs_err) max_abs_err = err;
-    //             if (err > 1e-2f) ++error_count;
     //         }
     //     }
-
     //     out_count++;
     // }
 
-    // std::cout << "Observed " << out_count << " output words\n";
-    // std::cout << "Max abs error = " << max_abs_err
-    //           << ", error_count = " << error_count << std::endl;
-
-    // if (error_count > 0) {
-    //     std::cout << "TEST FAILED\n";
-    //     return 1;
-    // } else {
-    //     std::cout << "TEST PASSED\n";
-    //     return 0;
-    // }
 }
