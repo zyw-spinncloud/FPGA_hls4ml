@@ -61,8 +61,10 @@ int main() {
     std::cout << "Total elements  = " << total_elems << "\n";
     std::cout << "MAE             = " << mae          << "\n";
 
-    // common MAE vs float model in precision ap_fixed<16,6>: 0.001 – 0.03
-    if (mae > 0.03) {
+    // common MAE vs float model in precision ap_fixed<16,6>
+    // calculated following quantization and accumulation of MLP:
+    // see documentation for details, 0.02 - 0.03 is a proper range
+    if (mae > 0.027) {
         std::cout << "TEST FAILED\n";
         return 1;
     } else {
