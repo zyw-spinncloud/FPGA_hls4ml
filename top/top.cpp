@@ -1,33 +1,23 @@
-// Top module to connect two sub component together.
-// Here "top" use axi (,/s) interface for host communication.
-// Submodule "emb" and "MLP_micro" communicate through axis.
-// Notes:
-// A. Header file of sub-component is not needed.
-// B. C-Flag point to workplace eg. -I /home/ziyuanwang/manu_pg1
-// C. When declaring the interface the variable
-//    TYPE and WIDTH (EVERYTHING) should align with the definition of sub component.
-//      Check define.h of each sub component to validate, eg.:
-//          typedef nnet::array<ap_fixed<16,6>, 16*1> input_t;
-//          typedef nnet::array<ap_fixed<34,14>, 64*1> result_t;
-//                                       ^^^^^   ^^^^
-//                  ^^^^^^^^^^^^^^^^^^^^
-// D. sub component source file (cpp) must be added
-
 #include <hls_stream.h>
 #include <ap_int.h>
-#include "ap_fixed.h"
+#include <ap_fixed.h>
 // #include "parameters.h"
 
+// C-Flag should be aligned with relative position
+// header file of each sub-kernel should all be included
+// eg. -I /home/ziyuanwang/manu_pg1
 #include "emb/firmware/nnet_utils/nnet_types.h"
+#include "MLP_micro/firmware/nnet_utils/nnet_types.h"
 
 // Reuse variable with new name
 // These sizes must match what you saw in the emb parameters header
-using emb_input_t  = nnet::array<ap_fixed<16,6>, 2*1>;
-using emb_result_t = nnet::array<ap_fixed<16,6>, 16*1>;
+using emb_elem_t = ap_fixed<16, 6>;
+using mlp_elem_t = ap_fixed<34, 14>;
 
-// These must match what you saw in the MLP_micro parameters header
-using mlp_input_t  = nnet::array<ap_fixed<16,6>, 16*1>;
-using mlp_result_t = nnet::array<ap_fixed<34,14>, 64*1>;
+using emb_input_t  = nnet::array<emb_elem_t, 2>;     // token into emb
+using emb_result_t = nnet::array<emb_elem_t, 16>;    // token out of emb
+using mlp_input_t  = nnet::array<emb_elem_t, 16>;    // token into MLP
+using mlp_result_t = nnet::array<mlp_elem_t, 64>;    // token out of MLP
 
 // Prototypes matching emb project
 void emb(hls::stream<emb_input_t>  &embedding_input,
@@ -39,64 +29,119 @@ void MLP_micro(
     hls::stream<mlp_result_t> &layer7_out
 );
 
-#define N_IN   13  // number of input elements (sequence length)
-#define N_OUT  16  // number of output elements (output length)
 
-// Help function
+// Pack emb input token (2x 16-bit) => 32-bit word
+using in_word_t  = ap_uint<32>;
+// Pack MLP output token: 64 * 34 = 2176 bits
+// Put each output token across 2176 bits. Round up to 2304 (9*256) or 2304/2048 etc.
+// We'll use 2304 bits here for alignment simplicity.
+using out_word_t = ap_uint<512>;
+static const int OUT_WORDS_PER_TOKEN = 5;
 
-void read_input(emb_input_t in_buf[N_IN],
-                hls::stream<emb_input_t> &s_emb_in) {
+template<int W, int I>
+static ap_uint<W> fixed_to_bits(ap_fixed<W, I> v) {
+#pragma HLS INLINE
+    ap_uint<W> b = v.range(W-1, 0);
+    return b;
+}
+
+template<int W, int I>
+static ap_fixed<W, I> bits_to_fixed(ap_uint<W> b) {
+#pragma HLS INLINE
+    ap_fixed<W, I> v;
+    v.range(W-1, 0) = b;
+    return v;
+}
+
+// -------- DDR -> stream (build emb_input_t tokens) --------
+static void read_from_ddr(const in_word_t *in,
+                          hls::stream<emb_input_t> &s_emb_in,
+                          int n_tokens)
+{
 #pragma HLS INLINE off
-    for (int i = 0; i < N_IN; ++i) {
-    #pragma HLS PIPELINE II=1
-        s_emb_in.write(in_buf[i]);
+    for (int t = 0; t < n_tokens; ++t) {
+#pragma HLS PIPELINE II=1
+        in_word_t w = in[t];
+
+        ap_uint<16> b0 = w.range(15, 0);
+        ap_uint<16> b1 = w.range(31, 16);
+
+        emb_input_t tok;
+        tok[0] = bits_to_fixed<16,6>(b0);
+        tok[1] = bits_to_fixed<16,6>(b1);
+
+        s_emb_in.write(tok);
     }
 }
 
-// NOTE: double check *right* loop length here:
-void convert_emb_to_mlp(hls::stream<emb_result_t> &s_emb_out,
-                        hls::stream<mlp_input_t>  &s_mlp_in) {
+// -------- emb_result_t -> mlp_input_t (often identical) --------
+static void bridge_emb_to_mlp(hls::stream<emb_result_t> &s_emb_out,
+                              hls::stream<mlp_input_t>  &s_mlp_in,
+                              int n_tokens)
+{
 #pragma HLS INLINE off
-    for (int i = 0; i < N_OUT; ++i) {  // OR another constant that matches emb output length
-    #pragma HLS PIPELINE II=1
-        
+    for (int t = 0; t < n_tokens; ++t) {
+#pragma HLS PIPELINE II=1
         emb_result_t e = s_emb_out.read();
         mlp_input_t  x;
-        //mlp_input_t  x = (mlp_input_t)e;   // cast if types differ; if identical type, no cast needed
-        x[0] = e[0];
-        x[1] = e[1];
-        
+        // If identical element type/size, this is just a copy:
+        for (int i = 0; i < 16; ++i) {
+#pragma HLS UNROLL
+            x[i] = e[i];
+        }
         s_mlp_in.write(x);
     }
 }
 
-// NOTE: double check *right* loop length here:
-void write_output(hls::stream<mlp_result_t> &s_mlp_out,
-                  mlp_result_t out_buf[N_OUT]) {
+// -------- stream -> HP (pack mlp_result_t tokens) --------
+static void write_to_ddr(hls::stream<mlp_result_t> &s_mlp_out,
+                         out_word_t *out,
+                         int n_tokens)
+{
 #pragma HLS INLINE off
+    for (int t = 0; t < n_tokens; ++t) {
+#pragma HLS PIPELINE II=1
+        mlp_result_t r = s_mlp_out.read();
 
-    for (int i = 0; i < N_OUT; ++i) {
-    #pragma HLS PIPELINE II=1
-        mlp_result_t tmp = s_mlp_out.read();
-        for (int j = 0; j < 64; ++j) {  // replace 64 with MLP_OUT_SIZE
-        #pragma HLS UNROLL
-            out_buf[i][j] = tmp[j];
+        // pack into 5x512-bit words
+        ap_uint<2176> packed = 0;
+        for (int i = 0; i < 64; ++i) {
+#pragma HLS UNROLL
+            ap_uint<34> bi = fixed_to_bits<34,14>(r[i]);
+            packed.range(i*34 + 33, i*34) = bi;
+        }
+
+        // store 5 beats
+        for (int k = 0; k < OUT_WORDS_PER_TOKEN; ++k) {
+#pragma HLS UNROLL
+            ap_uint<512> w = 0;
+            int lo = k * 512;
+            int hi = lo + 511;
+            // guard for the last chunk (only 2176 bits valid)
+            if (lo < 2176) {
+                int src_hi = (hi < 2175) ? hi : 2175;
+                w.range(src_hi - lo, 0) = packed.range(src_hi, lo);
+            }
+            out[t * OUT_WORDS_PER_TOKEN + k] = w;
         }
     }
 }
 
-
 // --------------- System-level top ---------------
-void system_top(emb_input_t  in_buf[N_IN],
-                    mlp_result_t out_buf[N_OUT]) {
-    // === 1. CPU-visible non-stream I/O (DDR/AXI) ===
-    #pragma HLS INTERFACE m_axi     port=in_buf  offset=slave bundle=gmem0
-    #pragma HLS INTERFACE m_axi     port=out_buf offset=slave bundle=gmem0
-    #pragma HLS INTERFACE s_axilite port=in_buf  bundle=control
-    #pragma HLS INTERFACE s_axilite port=out_buf bundle=control
-    #pragma HLS INTERFACE s_axilite port=return  bundle=control
+void system_top(const in_word_t  *in_buf,
+                out_word_t       *out_buf,
+                int n_in_tokens,
+                int n_out_tokens)
+{
+    #pragma HLS INTERFACE m_axi     port=in_buf   offset=slave bundle=gmem0 depth=1024
+    #pragma HLS INTERFACE m_axi     port=out_buf  offset=slave bundle=gmem0 depth=1024
 
-    // === 2. Internal dataflow / streaming ===
+    #pragma HLS INTERFACE s_axilite port=in_buf       bundle=control
+    #pragma HLS INTERFACE s_axilite port=out_buf      bundle=control
+    #pragma HLS INTERFACE s_axilite port=n_in_tokens  bundle=control
+    #pragma HLS INTERFACE s_axilite port=n_out_tokens bundle=control
+    #pragma HLS INTERFACE s_axilite port=return       bundle=control
+
     #pragma HLS DATAFLOW
 
     hls::stream<emb_input_t>  s_emb_in("s_emb_in");
@@ -104,23 +149,17 @@ void system_top(emb_input_t  in_buf[N_IN],
     hls::stream<mlp_input_t>  s_mlp_in("s_mlp_in");
     hls::stream<mlp_result_t> s_mlp_out("s_mlp_out");
 
-    #pragma HLS STREAM variable=s_emb_in   depth=32
-    #pragma HLS STREAM variable=s_emb_out  depth=32
-    #pragma HLS STREAM variable=s_mlp_in   depth=32
-    #pragma HLS STREAM variable=s_mlp_out  depth=32
+    #pragma HLS STREAM variable=s_emb_in   depth=64
+    #pragma HLS STREAM variable=s_emb_out  depth=64
+    #pragma HLS STREAM variable=s_mlp_in   depth=64
+    #pragma HLS STREAM variable=s_mlp_out  depth=64
 
-    // 1) DDR -> stream for emb
-    read_input(in_buf, s_emb_in);
-
-    // 2) emb block (stream in -> stream out)
+    read_from_ddr(in_buf, s_emb_in, n_in_tokens);
     emb(s_emb_in, s_emb_out);
 
-    // 3) convert emb output to MLP input (if needed)
-    convert_emb_to_mlp(s_emb_out, s_mlp_in);
+    // Usually n_out_tokens == number of emb output tokens == number of mlp input tokens
+    bridge_emb_to_mlp(s_emb_out, s_mlp_in, n_out_tokens);
 
-    // 4) MLP block
     MLP_micro(s_mlp_in, s_mlp_out);
-
-    // 5) stream -> DDR for host
-    write_output(s_mlp_out, out_buf);
+    write_to_ddr(s_mlp_out, out_buf, n_out_tokens);
 }
