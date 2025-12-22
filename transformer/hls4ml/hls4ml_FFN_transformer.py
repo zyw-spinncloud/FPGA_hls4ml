@@ -36,9 +36,7 @@ class FFN(nn.Module):
         d_MLP = expand * hidden  # 3072 FFN dimension for OPT-125M
 
         # No BatchNorm in OPT, just Linear layers.
-        # self.emb = nn.Embedding(vocab_size, hidden) 
         self.ln = nn.LayerNorm(hidden)
-        # self.flatten = nn.Flatten(start_dim=1, end_dim=2)  # (B,T,D) -> (B, T*D)
         self.fc1 = nn.Linear(hidden, d_MLP) # bias=True
         self.fc2 = nn.Linear(d_MLP, hidden) # bias=True
         self.act = F.relu # matching opt125m
@@ -52,14 +50,12 @@ class FFN(nn.Module):
         res = x
         # LayerNormalization
         y = self.ln(x)                           # (B, T, H)
-        # y = self.flatten(y)          # (B, T*D)
         # First linear
         y = self.fc1(y)          # (B, T, 16 * 4)
         # # Nonlinearity
         y = self.act(y)          # ReLU in OPT-125M
         # non-linaer funtionaal + Second linear
         y = self.fc2(y)          # (B, T, 16)
-        #y = y.view(BATCH, T, H)          # (B, T, D)
         # Residual add
         x = res + y
 

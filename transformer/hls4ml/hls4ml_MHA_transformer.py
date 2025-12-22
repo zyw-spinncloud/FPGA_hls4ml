@@ -28,12 +28,12 @@ with (
     QuantizerConfigScope(place="datalane", default_q_type="kif", overflow_mode="WRAP"),
     LayerConfigScope(enable_ebops=True, beta0=1e-5),
 ):
-    # # ---- Transformer "stage 1": Attention sublayer (Pre-LN) ----
-    # x = input_form
     # ---- Transformer "stage 1": Attention sublayer (Pre-LN) ----
     x = layers.LayerNormalization(axis=2, epsilon=1e-5, name="ln_attn")(input_form)
 
     # Self-attention: query=value=input
+    # mask = tf.linalg.band_part(tf.ones((T, T)), -1, 0)  # lower-triangular
+    # attn = QMultiHeadAttention(...)(x, x, attention_mask=mask)
     attn = QMultiHeadAttention(
         num_heads=head,
         key_dim=D_head,
