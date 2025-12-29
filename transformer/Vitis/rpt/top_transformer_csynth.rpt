@@ -1,0 +1,226 @@
+
+
+================================================================
+== Vitis HLS Report for 'top_transformer'
+================================================================
+* Date:           Mon Dec 29 13:29:11 2025
+
+* Version:        2024.1 (Build 5069499 on May 21 2024)
+* Project:        top_transformer
+* Solution:       hls (Vitis Kernel Flow Target)
+* Product family: virtexuplusHBM
+* Target device:  xcvu47p-fsvh2892-3-e
+
+
+================================================================
+== Performance Estimates
+================================================================
++ Timing: 
+    * Summary: 
+    +--------+---------+----------+------------+
+    |  Clock |  Target | Estimated| Uncertainty|
+    +--------+---------+----------+------------+
+    |ap_clk  |  6.67 ns|  4.807 ns|     1.80 ns|
+    +--------+---------+----------+------------+
+
++ Latency: 
+    * Summary: 
+    +---------+---------+----------+----------+-----+-----+---------+
+    |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline|
+    |   min   |   max   |    min   |    max   | min | max |   Type  |
+    +---------+---------+----------+----------+-----+-----+---------+
+    |      930|      946|  6.200 us|  6.307 us|  931|  947|       no|
+    +---------+---------+----------+----------+-----+-----+---------+
+
+    + Detail: 
+        * Instance: 
+        +----------------------------+-----------------+---------+---------+----------+----------+-----+-----+----------+
+        |                            |                 |  Latency (cycles) |  Latency (absolute) |  Interval | Pipeline |
+        |          Instance          |      Module     |   min   |   max   |    min   |    max   | min | max |   Type   |
+        +----------------------------+-----------------+---------+---------+----------+----------+-----+-----+----------+
+        |grp_emb_fu_325              |emb              |       16|       16|  0.107 us|  0.107 us|   16|   16|  dataflow|
+        |grp_MHA_transformer_fu_349  |MHA_transformer  |       71|       71|  0.473 us|  0.473 us|   25|   25|       yes|
+        |grp_FFN_transformer_fu_371  |FFN_transformer  |       37|       39|  0.247 us|  0.260 us|   24|   24|  dataflow|
+        +----------------------------+-----------------+---------+---------+----------+----------+-----+-----+----------+
+
+        * Loop: 
+        +-------------------+---------+---------+-----------+-----------+-----------+------+----------+
+        |                   |  Latency (cycles) | Iteration |  Initiation Interval  | Trip |          |
+        |     Loop Name     |   min   |   max   |  Latency  |  achieved |   target  | Count| Pipelined|
+        +-------------------+---------+---------+-----------+-----------+-----------+------+----------+
+        |- VITIS_LOOP_60_1  |      896|      912|  112 ~ 114|          -|          -|     8|        no|
+        +-------------------+---------+---------+-----------+-----------+-----------+------+----------+
+
+
+
+================================================================
+== Utilization Estimates
+================================================================
+* Summary: 
++---------------------+---------+------+---------+---------+-----+
+|         Name        | BRAM_18K|  DSP |    FF   |   LUT   | URAM|
++---------------------+---------+------+---------+---------+-----+
+|DSP                  |        -|     -|        -|        -|    -|
+|Expression           |        -|     -|        0|       28|    -|
+|FIFO                 |        -|     -|        -|        -|    -|
+|Instance             |      261|   879|    41017|    64125|    0|
+|Memory               |        -|     -|        -|        -|    -|
+|Multiplexer          |        -|     -|        0|      783|    -|
+|Register             |        -|     -|      619|        -|    -|
++---------------------+---------+------+---------+---------+-----+
+|Total                |      261|   879|    41636|    64936|    0|
++---------------------+---------+------+---------+---------+-----+
+|Available SLR        |     1344|  3008|   869120|   434560|  320|
++---------------------+---------+------+---------+---------+-----+
+|Utilization SLR (%)  |       19|    29|        4|       14|    0|
++---------------------+---------+------+---------+---------+-----+
+|Available            |     4032|  9024|  2607360|  1303680|  960|
++---------------------+---------+------+---------+---------+-----+
+|Utilization (%)      |        6|     9|        1|        4|    0|
++---------------------+---------+------+---------+---------+-----+
+
++ Detail: 
+    * Instance: 
+    +----------------------------+-----------------+---------+-----+-------+-------+-----+
+    |          Instance          |      Module     | BRAM_18K| DSP |   FF  |  LUT  | URAM|
+    +----------------------------+-----------------+---------+-----+-------+-------+-----+
+    |grp_FFN_transformer_fu_371  |FFN_transformer  |      258|  815|  29237|  41830|    0|
+    |grp_MHA_transformer_fu_349  |MHA_transformer  |        2|   64|  11316|  20576|    0|
+    |control_s_axi_U             |control_s_axi    |        0|    0|    138|    146|    0|
+    |grp_emb_fu_325              |emb              |        1|    0|    326|   1573|    0|
+    +----------------------------+-----------------+---------+-----+-------+-------+-----+
+    |Total                       |                 |      261|  879|  41017|  64125|    0|
+    +----------------------------+-----------------+---------+-----+-------+-------+-----+
+
+    * DSP: 
+    N/A
+
+    * Memory: 
+    N/A
+
+    * FIFO: 
+    N/A
+
+    * Expression: 
+    +---------------------------------------------+----------+----+---+----+------------+------------+
+    |                Variable Name                | Operation| DSP| FF| LUT| Bitwidth P0| Bitwidth P1|
+    +---------------------------------------------+----------+----+---+----+------------+------------+
+    |i_2_fu_507_p2                                |         +|   0|  0|  12|           4|           1|
+    |icmp_ln60_fu_501_p2                          |      icmp|   0|  0|  12|           4|           5|
+    |ap_sync_grp_FFN_transformer_fu_371_ap_ready  |        or|   0|  0|   2|           1|           1|
+    |ap_sync_grp_emb_fu_325_ap_ready              |        or|   0|  0|   2|           1|           1|
+    +---------------------------------------------+----------+----+---+----+------------+------------+
+    |Total                                        |          |   0|  0|  28|          10|           8|
+    +---------------------------------------------+----------+----+---+----+------------+------------+
+
+    * Multiplexer: 
+    +----------------------+-----+-----------+-----+-----------+
+    |         Name         | LUT | Input Size| Bits| Total Bits|
+    +----------------------+-----+-----------+-----+-----------+
+    |ap_NS_fsm             |  468|         94|    1|         94|
+    |i_fu_102              |    9|          2|    4|          8|
+    |layer_in_16_fu_110    |    9|          2|   16|         32|
+    |layer_in_17_fu_114    |    9|          2|   16|         32|
+    |layer_in_18_fu_118    |    9|          2|   16|         32|
+    |layer_in_19_fu_122    |    9|          2|   16|         32|
+    |layer_in_20_fu_126    |    9|          2|   16|         32|
+    |layer_in_21_fu_130    |    9|          2|   16|         32|
+    |layer_in_22_fu_134    |    9|          2|   16|         32|
+    |layer_in_23_fu_138    |    9|          2|   16|         32|
+    |layer_in_24_fu_142    |    9|          2|   16|         32|
+    |layer_in_25_fu_146    |    9|          2|   16|         32|
+    |layer_in_26_fu_150    |    9|          2|   16|         32|
+    |layer_in_27_fu_154    |    9|          2|   16|         32|
+    |layer_in_28_fu_158    |    9|          2|   16|         32|
+    |layer_in_29_fu_162    |    9|          2|   16|         32|
+    |layer_in_30_fu_166    |    9|          2|   16|         32|
+    |layer_in_fu_106       |    9|          2|   16|         32|
+    |out_r_address0_local  |   81|         17|    4|         68|
+    |out_r_d0_local        |   81|         17|   16|        272|
+    +----------------------+-----+-----------+-----+-----------+
+    |Total                 |  783|        162|  281|        954|
+    +----------------------+-----+-----------+-----+-----------+
+
+    * Register: 
+    +-------------------------------------------------+----+----+-----+-----------+
+    |                       Name                      | FF | LUT| Bits| Const Bits|
+    +-------------------------------------------------+----+----+-----+-----------+
+    |ap_CS_fsm                                        |  93|   0|   93|          0|
+    |ap_rst_n_inv                                     |   1|   0|    1|          0|
+    |ap_rst_reg_1                                     |   1|   0|    1|          0|
+    |ap_rst_reg_2                                     |   1|   0|    1|          0|
+    |ap_sync_reg_grp_FFN_transformer_fu_371_ap_done   |   1|   0|    1|          0|
+    |ap_sync_reg_grp_FFN_transformer_fu_371_ap_ready  |   1|   0|    1|          0|
+    |ap_sync_reg_grp_emb_fu_325_ap_done               |   1|   0|    1|          0|
+    |ap_sync_reg_grp_emb_fu_325_ap_ready              |   1|   0|    1|          0|
+    |grp_FFN_transformer_fu_371_ap_start_reg          |   1|   0|    1|          0|
+    |grp_MHA_transformer_fu_349_ap_start_reg          |   1|   0|    1|          0|
+    |grp_emb_fu_325_ap_start_reg                      |   1|   0|    1|          0|
+    |i_fu_102                                         |   4|   0|    4|          0|
+    |layer_in_16_fu_110                               |  16|   0|   16|          0|
+    |layer_in_17_fu_114                               |  16|   0|   16|          0|
+    |layer_in_18_fu_118                               |  16|   0|   16|          0|
+    |layer_in_19_fu_122                               |  16|   0|   16|          0|
+    |layer_in_20_fu_126                               |  16|   0|   16|          0|
+    |layer_in_21_fu_130                               |  16|   0|   16|          0|
+    |layer_in_22_fu_134                               |  16|   0|   16|          0|
+    |layer_in_23_fu_138                               |  16|   0|   16|          0|
+    |layer_in_24_fu_142                               |  16|   0|   16|          0|
+    |layer_in_25_fu_146                               |  16|   0|   16|          0|
+    |layer_in_26_fu_150                               |  16|   0|   16|          0|
+    |layer_in_27_fu_154                               |  16|   0|   16|          0|
+    |layer_in_28_fu_158                               |  16|   0|   16|          0|
+    |layer_in_29_fu_162                               |  16|   0|   16|          0|
+    |layer_in_30_fu_166                               |  16|   0|   16|          0|
+    |layer_in_fu_106                                  |  16|   0|   16|          0|
+    |layer_out_10_reg_769                             |  16|   0|   16|          0|
+    |layer_out_11_reg_774                             |  16|   0|   16|          0|
+    |layer_out_12_reg_779                             |  16|   0|   16|          0|
+    |layer_out_13_reg_784                             |  16|   0|   16|          0|
+    |layer_out_14_reg_789                             |  16|   0|   16|          0|
+    |layer_out_15_reg_794                             |  16|   0|   16|          0|
+    |layer_out_1_reg_724                              |  16|   0|   16|          0|
+    |layer_out_2_reg_729                              |  16|   0|   16|          0|
+    |layer_out_3_reg_734                              |  16|   0|   16|          0|
+    |layer_out_4_reg_739                              |  16|   0|   16|          0|
+    |layer_out_5_reg_744                              |  16|   0|   16|          0|
+    |layer_out_6_reg_749                              |  16|   0|   16|          0|
+    |layer_out_7_reg_754                              |  16|   0|   16|          0|
+    |layer_out_8_reg_759                              |  16|   0|   16|          0|
+    |layer_out_9_reg_764                              |  16|   0|   16|          0|
+    |layer_out_reg_719                                |  16|   0|   16|          0|
+    +-------------------------------------------------+----+----+-----+-----------+
+    |Total                                            | 619|   0|  619|          0|
+    +-------------------------------------------------+----+----+-----+-----------+
+
+
+
+================================================================
+== Interface
+================================================================
+* Summary: 
++-----------------------+-----+-----+------------+-----------------+--------------+
+|       RTL Ports       | Dir | Bits|  Protocol  |  Source Object  |    C Type    |
++-----------------------+-----+-----+------------+-----------------+--------------+
+|s_axi_control_AWVALID  |   in|    1|       s_axi|          control|         array|
+|s_axi_control_AWREADY  |  out|    1|       s_axi|          control|         array|
+|s_axi_control_AWADDR   |   in|    6|       s_axi|          control|         array|
+|s_axi_control_WVALID   |   in|    1|       s_axi|          control|         array|
+|s_axi_control_WREADY   |  out|    1|       s_axi|          control|         array|
+|s_axi_control_WDATA    |   in|   32|       s_axi|          control|         array|
+|s_axi_control_WSTRB    |   in|    4|       s_axi|          control|         array|
+|s_axi_control_ARVALID  |   in|    1|       s_axi|          control|         array|
+|s_axi_control_ARREADY  |  out|    1|       s_axi|          control|         array|
+|s_axi_control_ARADDR   |   in|    6|       s_axi|          control|         array|
+|s_axi_control_RVALID   |  out|    1|       s_axi|          control|         array|
+|s_axi_control_RREADY   |   in|    1|       s_axi|          control|         array|
+|s_axi_control_RDATA    |  out|   32|       s_axi|          control|         array|
+|s_axi_control_RRESP    |  out|    2|       s_axi|          control|         array|
+|s_axi_control_BVALID   |  out|    1|       s_axi|          control|         array|
+|s_axi_control_BREADY   |   in|    1|       s_axi|          control|         array|
+|s_axi_control_BRESP    |  out|    2|       s_axi|          control|         array|
+|ap_clk                 |   in|    1|  ap_ctrl_hs|  top_transformer|  return value|
+|ap_rst_n               |   in|    1|  ap_ctrl_hs|  top_transformer|  return value|
+|interrupt              |  out|    1|  ap_ctrl_hs|  top_transformer|  return value|
++-----------------------+-----+-----+------------+-----------------+--------------+
+
