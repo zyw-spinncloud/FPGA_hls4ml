@@ -1,0 +1,128 @@
+Backend: Vivado
+ClockPeriod: 5
+ClockUncertainty: 12.5%
+HLSConfig:
+  LayerName:
+    ln_attn:
+      Precision:
+        bias: auto
+        result: auto
+        scale: auto
+      Trace: false
+    mha:
+      Precision: ap_fixed<16,6>
+    mha_attention_output:
+      Precision:
+        accum: auto
+        bias: auto
+        result: auto
+        weight: auto
+      Trace: false
+    mha_attention_output_iq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_input:
+      Precision:
+        result: auto
+      Trace: false
+    mha_key:
+      Precision:
+        accum: auto
+        bias: auto
+        result: auto
+        weight: auto
+      Trace: false
+    mha_key_iq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_key_oq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_mha_QK:
+      Precision:
+        accum: auto
+        result: auto
+      Trace: false
+    mha_mha_aV:
+      Precision:
+        accum: auto
+        result: auto
+      Trace: false
+    mha_q_softmax:
+      Precision:
+        result: auto
+      Trace: false
+    mha_q_softmax_iq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_q_softmax_oq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_query:
+      Precision:
+        accum: auto
+        bias: auto
+        result: auto
+        weight: auto
+      Trace: false
+    mha_query_iq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_query_oq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_value:
+      Precision:
+        accum: auto
+        bias: auto
+        result: auto
+        weight: auto
+      Trace: false
+    mha_value_iq:
+      Precision:
+        result: auto
+      Trace: false
+    mha_value_oq:
+      Precision:
+        result: auto
+      Trace: false
+    res_attn:
+      Precision:
+        result: ap_fixed<16,6>
+  Model:
+    BitExact: false
+    BramFactor: 1000000000
+    Precision:
+      default: ap_fixed<16,6>
+    ReuseFactor: 16
+    Strategy: Latency
+    TraceOutput: false
+IOType: io_parallel
+InputData: null
+InputShapes:
+  mha_input:
+  - 1
+  - 16
+KerasModel: !keras_model 'C:/Users/ziyuan.wang/hls4ml_MHA_transformer/keras_model.keras'
+OutputDir: C:/Users/ziyuan.wang/hls4ml_MHA_transformer
+OutputPredictions: null
+OutputShapes:
+  layer19_out:
+  - 1
+  - 16
+Part: xcvu13p-flga2577-2-e
+ProjectName: MHA_transformer
+Stamp: fdffb52a
+Version: 1.0.0
+WriterConfig:
+  Namespace: null
+  TBOutputStream: both
+  WriteTar: false
+  WriteWeightsTxt: true

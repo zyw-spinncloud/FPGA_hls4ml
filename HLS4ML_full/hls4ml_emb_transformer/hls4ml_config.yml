@@ -1,0 +1,34 @@
+Backend: Vitis
+ClockPeriod: 5
+ClockUncertainty: 27%
+HLSConfig:
+  Model:
+    BitExact: null
+    BramFactor: 1000000000
+    Precision:
+      default: ap_fixed<16,6>
+    ReuseFactor: 16
+    Strategy: Resource
+    TraceOutput: false
+IOType: io_parallel
+InputData: null
+InputShapes:
+  tokens:
+  - 1
+KerasModel: !keras_model 'C:/Users/ziyuan.wang/hls4ml_emb_transformer/keras_model.keras'
+OutputDir: C:/Users/ziyuan.wang/hls4ml_emb_transformer
+OutputPredictions: null
+OutputShapes:
+  layer2_out:
+  - 1
+  - 16
+Part: xcvu13p-flga2577-2-e
+ProjectName: emb
+Stamp: a0467475
+Version: 1.0.0
+WriterConfig:
+  Namespace: null
+  TBOutputStream: both
+  WriteEmulationConstants: false
+  WriteTar: false
+  WriteWeightsTxt: true
